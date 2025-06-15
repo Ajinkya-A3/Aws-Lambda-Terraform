@@ -1,7 +1,7 @@
 # zipping the python file to create a lambda function
-data "archivefile" "lambda_zip" {
+data "archive_file" "lambda_zip" {
   type        = "zip"
-  source_dir  = "${path.module}/python/toggle.py"
+  source_file  = "${path.module}/python/toggle.py"
   output_path = "${path.module}/python/toggle.zip"
   
 }
@@ -73,7 +73,8 @@ resource "aws_lambda_function" "toggle_lambda" {
     role =aws_iam_role.lamda-role.arn
     handler = "toggle.lambda_handler"
     runtime = "python3.10"
-    filename = data.archivefile.lambda_zip.output_path
+    timeout = 5
+    filename = data.archive_file.lambda_zip.output_path
     depends_on = [ aws_iam_role_policy_attachment.attachment, 
                    aws_iam_role.lamda-role,aws_iam_policy.lambda_exec_policy
     ]
