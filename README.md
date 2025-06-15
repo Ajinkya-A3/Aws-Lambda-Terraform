@@ -48,7 +48,7 @@ The Lambda function:
 1. **Clone the Repository**
 
 ```bash
-git clone <your-repo-url>
+git clone <repo-url>
 cd Aws-Lambda-Terraform
 
 ```
