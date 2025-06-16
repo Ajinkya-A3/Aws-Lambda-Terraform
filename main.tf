@@ -80,3 +80,30 @@ resource "aws_lambda_function" "toggle_lambda" {
     ]
   
 }
+
+
+# creating a cloudwatch event rule to trigger the lambda function every 1 minute
+resource "aws_cloudwatch_event_rule" "every_minute" {
+  name        = "every_minute"
+  description = "Trigger Lambda every 5 minutes"
+  schedule_expression = "rate(1 minute)"
+}
+
+
+# creating lambda permission to allow cloudwatch to invoke the lambda function
+# its resource policy
+resource "aws_lambda_permission" "allow_cloudwatch" {
+  statement_id  = "AllowExecutionFromCloudWatch"
+  action        = "lambda:InvokeFunction"
+  function_name = aws_lambda_function.toggle_lambda.function_name
+  principal     = "events.amazonaws.com"
+  source_arn    = aws_cloudwatch_event_rule.every_minute.arn
+}
+
+
+# creating a cloudwatch event target to link the rule to the lambda function
+resource "aws_cloudwatch_event_target" "lambda_target" {
+  rule      = aws_cloudwatch_event_rule.every_minute.name
+  target_id = "toggle_ec2_instance"
+  arn       = aws_lambda_function.toggle_lambda.arn
+}
