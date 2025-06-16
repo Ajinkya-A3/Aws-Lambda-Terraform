@@ -1,0 +1,7 @@
+lambda_function_name           = "toggle_ec2_instance"
+lambda_handler                 = "toggle.lambda_handler"
+lambda_source_file             = "python/toggle.py"
+policy_template_path           = "policies/lambda_policy.json"
+cloudwatch_schedule_expression = "rate(1 minute)"
+cloudwatch_rule_name           = "every_minute"
+cloudwatch_rule_description    = "Trigger Lambda every 1 minute"
