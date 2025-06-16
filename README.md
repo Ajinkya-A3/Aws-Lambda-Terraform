@@ -1,140 +1,130 @@
 
-# 🔁 AWS Lambda EC2 Toggle with Terraform
+# 🛠️ Terraform Module: Lambda Automation with CloudWatch Scheduler
 
-This project creates an AWS Lambda function using **Terraform** that **automatically toggles EC2 instances (start/stop)** based on their current state and a specific tag (e.g., `Environment=Dev`).
-
-The Lambda function:
-- Finds EC2 instances tagged with a specific key/value (e.g., `Environment=Dev`)
-- Starts stopped instances
-- Stops running instances
-- Uses IAM roles and policies to securely access EC2 and CloudWatch Logs
-- Is deployed and zipped automatically using Terraform
+This module provisions an AWS Lambda function that can be triggered by a CloudWatch Event Rule on a schedule.
+It includes all necessary IAM roles, policies, and permissions. You can reuse it to deploy **any Python-based Lambda**
+and associate it with a CloudWatch scheduler.
 
 ---
 
-## 🧱 Project Structure
+## 📁 Project Structure
 
 ```
 .
-├── main.tf                  # Terraform configuration
+├── main.tf
+├── variables.tf
+├── terraform.tfvars
+├── outputs.tf
+├── policies/
+│   └── lambda_policy.json
 ├── python/
-│   ├── toggle.py            # Lambda function code
+│   └── toggle.py
 ```
 
 ---
 
-## 🛠️ Prerequisites
+## ⚙️ Features
 
-- Terraform installed (`v1.10.0+`)
-- AWS CLI configured (`aws configure`)
-- Python (only for Lambda development)
-- IAM credentials with permission to deploy Lambda, IAM roles, and EC2
-
----
-
-## 🔧 What This Project Does
-
-- 📦 Zips `toggle.py` using Terraform `archive_file`
-- 🔐 Creates an IAM role and policy for Lambda:
-  - Logs to CloudWatch
-  - Describes, starts, and stops EC2 instances
-- 🚀 Deploys a Lambda function written in Python 3.10
-- ⏱️ Sets a 5-second timeout for the function
+- Zip and deploy a Python Lambda function
+- IAM role and policy attachment for execution
+- CloudWatch Event Rule to trigger Lambda on schedule
+- Parameterized using Terraform variables for reusability
+- Uses `templatefile` to inject dynamic IAM permissions
 
 ---
 
-## 🚀 How to Deploy
+## 🔧 Required Variables
 
-1. **Clone the Repository**
+In your `terraform.tfvars`, you should define:
 
-```bash
-git clone <repo-url>
-cd Aws-Lambda-Terraform
+```hcl
+lambda_function_name        = "toggle_ec2_instance"              # Lambda function name
+lambda_handler_name         = "toggle.lambda_handler"            # Python handler (filename.function)
+lambda_runtime              = "python3.10"                       # Lambda runtime
+lambda_timeout              = 5                                  # Timeout in seconds
 
+lambda_source_file          = "python/toggle.py"                 # Path to Python source file
+lambda_zip_output_file      = "python/toggle.zip"                # Output zip path
+
+policy_template_path        = "policies/lambda_policy.json"      # IAM policy template path
+
+cloudwatch_rule_name        = "every_minute"                     # CloudWatch rule name
+cloudwatch_schedule         = "rate(1 minute)"                   # Schedule expression
+cloudwatch_rule_description = "Trigger Lambda every 1 minute"    # Rule description
 ```
 
-2. **Initialize Terraform**
+---
 
-```bash
-terraform init
+## 🔐 IAM Policy Template
+
+Example `policies/lambda_policy.json`:
+
+```json
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Effect": "Allow",
+      "Action": [
+        "logs:CreateLogGroup",
+        "logs:CreateLogStream",
+        "logs:PutLogEvents"
+      ],
+      "Resource": "*"
+    }
+    // You can add more permissions here as needed
+  ]
+}
 ```
 
-3. **Review Plan**
+---
 
-```bash
-terraform plan
-```
+## 📜 Lambda Code
 
-4. **Apply Changes**
+Place your Python logic inside `python/<file_name>.py`. This file will be zipped automatically during Terraform run.
 
-```bash
-terraform apply
-```
+**Test Lambda**
 
-5. **Test Lambda**
-
-Use the AWS Console or AWS CLI to invoke the Lambda function:
+Use the AWS Console or AWS CLI to invoke the Lambda function to test:
 
 ```bash
 aws lambda invoke \
-  --function-name toggle_ec2_instance \
+  --function-name <function_name> \
   --payload '{}' \
   response.json
 ```
 
 ---
 
-## 📜 Lambda Function Logic
+## ▶️ Usage
 
-Located in `python/toggle.py`, the function:
-
-- Uses `boto3` to connect to EC2
-- Filters instances by tag: `Environment=Dev`
-- Stops instances that are running
-- Starts instances that are stopped
-- Logs all actions using the `logging` module
-
----
-
-## 🧠 Customization
-
-You can change the following inside `toggle.py`:
-
-```python
-TAG_KEY = 'Environment'
-TAG_VALUE = 'Dev'
+```bash
+terraform init
+terraform apply
 ```
 
-To target different instance groups by tag.
+---
+
+## ✅ What Gets Created
+
+- Lambda function zipped and deployed
+- IAM role for Lambda execution
+- IAM policy using dynamic template
+- CloudWatch Event Rule on defined schedule
+- Lambda permission for CloudWatch to invoke
+- Event Target linking CloudWatch to Lambda
 
 ---
 
-## 🔐 IAM Permissions Used
+## 📌 Notes
 
-The Lambda execution policy allows:
-
-```json
-{
-  "ec2:DescribeInstances",
-  "ec2:StartInstances",
-  "ec2:StopInstances",
-  "logs:*"
-}
-```
-
-These permissions can be scoped further using specific `Resource` ARNs for tighter security.
+- Keep the policy template JSON compliant with IAM standards.
+- Schedule expression must follow AWS `rate()` or `cron()` format.
+- Lambda files are zipped at runtime using the `archive_file` data source.
 
 ---
 
-## 📎 Useful Tips
-
-- Lambda timeout is currently set to **5 seconds**, adjust it in `main.tf` if needed.
-- This function can be scheduled using **EventBridge (CloudWatch Scheduled Event)** if desired.
-- If managing large fleets, consider increasing timeout and batching logic.
-
----
-
-## 🧼 Clean Up
+## 💥 Clean Up
 
 To remove all resources:
 
@@ -146,4 +136,4 @@ terraform destroy
 
 ## 📄 License
 
-This project is licensed under the [Apache License 2.0](https://www.apache.org/licenses/LICENSE-2.0).
+Licensed under the [Apache License 2.0](https://www.apache.org/licenses/LICENSE-2.0).
